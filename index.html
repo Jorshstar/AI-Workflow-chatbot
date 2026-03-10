@@ -738,21 +738,156 @@
   /* Tooltip */
   [title] { cursor: help; }
 
-  /* Responsive */
+  /* ── NEW CHAT BUTTON ── */
+  .sidebar-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .new-chat-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 0 12px var(--accent-glow);
+    white-space: nowrap;
+  }
+  .new-chat-btn:hover { background: var(--accent2); transform: scale(1.03); }
+  .new-chat-btn svg { width: 12px; height: 12px; fill: #fff; flex-shrink: 0; }
+
+  /* ── HISTORY LIST ── */
+  .history-list {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px;
+  }
+  .history-list::-webkit-scrollbar { width: 3px; }
+  .history-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  .history-group-label {
+    font-size: 9px;
+    letter-spacing: 1.2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    padding: 8px 8px 3px;
+  }
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .history-item:hover { background: var(--surface2); border-color: var(--border); }
+  .history-item.active { background: var(--accent-glow); border-color: rgba(255,107,53,0.25); }
+  .history-item-body { flex: 1; min-width: 0; }
+  .history-item-title {
+    font-size: 12px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+  .history-item.active .history-item-title { color: var(--accent2); }
+  .history-item-meta { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+  .history-item-del {
+    opacity: 0;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    transition: all 0.1s;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .history-item:hover .history-item-del { opacity: 1; }
+  .history-item-del:hover { color: var(--red); background: var(--red-dim); }
+  .history-empty-msg {
+    text-align: center;
+    padding: 20px 12px;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.7;
+  }
+
+  /* ── HAMBURGER (mobile) ── */
+  .hamburger {
+    display: none;
+    width: 34px; height: 34px;
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    cursor: pointer;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .hamburger span { display: block; width: 15px; height: 2px; background: var(--text-dim); border-radius: 2px; }
+
+  /* mobile sidebar overlay */
+  .sidebar-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 39;
+    backdrop-filter: blur(2px);
+  }
+  .sidebar-overlay.visible { display: block; }
+
+  /* ── MOBILE RESPONSIVE ── */
   @media (max-width: 768px) {
-    .sidebar { display: none; }
-    .messages { padding: 20px; }
-    .input-area { padding: 16px; }
+    .hamburger { display: flex; }
+    .model-badge { display: none; }
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 40;
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+      box-shadow: 4px 0 32px rgba(0,0,0,0.6);
+    }
+    .sidebar.mobile-open { transform: translateX(0); }
+    .messages { padding: 16px; }
+    .input-area { padding: 12px 16px 18px; }
+    .msg { max-width: 100%; }
   }
 </style>
 </head>
 <body>
 
 <header class="header">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
   <div class="logo">
     <div class="logo-icon">n8</div>
     <div class="logo-text">Workflow<span>Agent</span></div>
   </div>
+  </div><!-- end header-left -->
   <div class="header-right">
     <div class="model-badge">GPT-5-mini</div>
     <div class="status-pill">
@@ -762,9 +897,21 @@
   </div>
 </header>
 
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 <div class="main">
   <!-- Sidebar -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
+    <!-- New Chat + History -->
+    <div class="sidebar-top-row">
+      <span style="font-size:10px;letter-spacing:1.2px;color:var(--text-muted);text-transform:uppercase;font-family:'Syne',sans-serif;font-weight:600;">History</span>
+      <button class="new-chat-btn" onclick="newChat()">
+        <svg viewBox="0 0 24 24"><path d="M19 11H13V5a1 1 0 0 0-2 0v6H5a1 1 0 0 0 0 2h6v6a1 1 0 0 0 2 0v-6h6a1 1 0 0 0 0-2z"/></svg>
+        New Chat
+      </button>
+    </div>
+    <div class="history-list" id="historyList" style="max-height:220px;">
+      <div class="history-empty-msg" id="historyEmpty">No conversations yet.</div>
+    </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Available Tools</div>
       <div class="tool-list" id="toolList">
@@ -865,6 +1012,171 @@ const WEBHOOK_URL = 'https://subextensible-predietary-leia.ngrok-free.dev/webhoo
 
 let isLoading = false;
 
+// ── SESSION / HISTORY ──────────────────────────────────────────
+let sessions = {};
+let activeSessionId = null;
+
+function genId() {
+  return 's_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+}
+function saveSessions() {
+  try { localStorage.setItem('n8n_chat_sessions', JSON.stringify(sessions)); } catch(e) {}
+}
+function loadSessions() {
+  try { return JSON.parse(localStorage.getItem('n8n_chat_sessions') || '{}'); } catch(e) { return {}; }
+}
+function timeAgo(ts) {
+  const d = Date.now() - ts;
+  if (d < 60000)    return 'just now';
+  if (d < 3600000)  return Math.floor(d/60000) + 'm ago';
+  if (d < 86400000) return Math.floor(d/3600000) + 'h ago';
+  return Math.floor(d/86400000) + 'd ago';
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const ids  = Object.keys(sessions).sort((a,b) => sessions[b].createdAt - sessions[a].createdAt);
+  if (!ids.length) {
+    list.innerHTML = '<div class="history-empty-msg">No conversations yet.</div>';
+    return;
+  }
+  const now   = Date.now();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const yest  = new Date(today); yest.setDate(yest.getDate()-1);
+  const groups = [
+    { label: 'Today',     ids: ids.filter(id => sessions[id].createdAt >= today.getTime()) },
+    { label: 'Yesterday', ids: ids.filter(id => sessions[id].createdAt >= yest.getTime() && sessions[id].createdAt < today.getTime()) },
+    { label: 'Older',     ids: ids.filter(id => sessions[id].createdAt < yest.getTime()) },
+  ];
+  list.innerHTML = '';
+  groups.forEach(g => {
+    if (!g.ids.length) return;
+    const gl = document.createElement('div');
+    gl.className = 'history-group-label';
+    gl.textContent = g.label;
+    list.appendChild(gl);
+    g.ids.forEach(id => {
+      const s   = sessions[id];
+      const div = document.createElement('div');
+      div.className = 'history-item' + (id === activeSessionId ? ' active' : '');
+      div.innerHTML = `
+        <div class="history-item-body">
+          <div class="history-item-title">${escapeHtmlBasic(s.title)}</div>
+          <div class="history-item-meta">${s.msgs} msg${s.msgs !== 1 ? 's' : ''} · ${timeAgo(s.createdAt)}</div>
+        </div>
+        <button class="history-item-del" onclick="deleteSession('${id}',event)" title="Delete">✕</button>`;
+      div.onclick = (e) => { if (!e.target.classList.contains('history-item-del')) loadSession(id); };
+      list.appendChild(div);
+    });
+  });
+}
+
+function escapeHtmlBasic(t) {
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function newChat() {
+  const id = genId();
+  sessions[id] = { id, title: 'New Conversation', createdAt: Date.now(), msgs: 0, messages: [] };
+  saveSessions();
+  activateSession(id);
+  closeSidebarMobile();
+  // clear messages and show empty state
+  const msgsEl = document.getElementById('messages');
+  msgsEl.innerHTML = `
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">🤖</div>
+      <div class="empty-title">n8n Workflow Agent</div>
+      <div class="empty-sub">I'm your automation expert. I can list workflows, inspect executions, debug errors, and build entire workflows on demand.</div>
+      <div class="empty-chips">
+        <div class="empty-chip" onclick="sendQuick('What workflows do I have?')">What workflows do I have?</div>
+        <div class="empty-chip" onclick="sendQuick('Show me recent execution failures')">Recent failures</div>
+        <div class="empty-chip" onclick="sendQuick('Create a webhook to email notification workflow')">Build a workflow</div>
+        <div class="empty-chip" onclick="sendQuick('How do I connect two workflows in n8n?')">n8n tips</div>
+        <div class="empty-chip" onclick="sendQuick('Check if any workflows are inactive')">Check inactive</div>
+      </div>
+    </div>`;
+  document.getElementById('chatInput').focus();
+}
+
+function activateSession(id) {
+  activeSessionId = id;
+  renderHistory();
+}
+
+function loadSession(id) {
+  const s = sessions[id];
+  if (!s) return;
+  activateSession(id);
+  closeSidebarMobile();
+  const msgsEl = document.getElementById('messages');
+  msgsEl.innerHTML = '';
+  // replay stored messages
+  s.messages.forEach(m => {
+    if (m.role === 'user') {
+      const div = document.createElement('div');
+      div.className = 'msg user';
+      div.innerHTML = `<div class="msg-avatar">👤</div><div class="msg-body"><div class="msg-meta"><span class="msg-name">You</span><span class="msg-time">${m.time}</span></div><div class="msg-bubble">${escapeHtmlBasic(m.text)}</div></div>`;
+      msgsEl.appendChild(div);
+    } else if (m.role === 'agent') {
+      const div = document.createElement('div');
+      div.className = 'msg agent';
+      div.innerHTML = `<div class="msg-avatar">🤖</div><div class="msg-body"><div class="msg-meta"><span class="msg-name">Workflow Agent</span><span class="msg-time">${m.time}</span></div><div class="msg-bubble">${parseAndRenderMessage(m.text)}</div></div>`;
+      msgsEl.appendChild(div);
+    } else if (m.role === 'notice') {
+      const div = document.createElement('div');
+      div.className = `action-notice ${m.noticeType}`;
+      div.innerHTML = `<div class="action-icon">${m.icon}</div><div class="action-content"><div class="action-title">${m.title}</div><div>${m.body}</div></div>`;
+      msgsEl.appendChild(div);
+    }
+  });
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+function deleteSession(id, e) {
+  e.stopPropagation();
+  delete sessions[id];
+  saveSessions();
+  if (activeSessionId === id) {
+    const remaining = Object.keys(sessions).sort((a,b) => sessions[b].createdAt - sessions[a].createdAt);
+    if (remaining.length) loadSession(remaining[0]);
+    else newChat();
+  } else {
+    renderHistory();
+  }
+}
+
+function saveMessageToSession(role, text, time, extra) {
+  if (!activeSessionId || !sessions[activeSessionId]) return;
+  const s = sessions[activeSessionId];
+  s.messages.push({ role, text, time, ...extra });
+  if (role === 'user') {
+    s.msgs++;
+    // auto-title from first user message
+    if (s.title === 'New Conversation') {
+      s.title = text.length > 44 ? text.slice(0, 44) + '…' : text;
+    }
+  }
+  saveSessions();
+  renderHistory();
+}
+
+// ── MOBILE SIDEBAR ──────────────────────────────────────────────
+function toggleSidebar() {
+  const sidebar  = document.getElementById('sidebar');
+  const overlay  = document.getElementById('sidebarOverlay');
+  const isOpen   = sidebar.classList.contains('mobile-open');
+  sidebar.classList.toggle('mobile-open', !isOpen);
+  overlay.classList.toggle('visible', !isOpen);
+}
+function closeSidebarMobile() {
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidebar').classList.remove('mobile-open');
+    document.getElementById('sidebarOverlay').classList.remove('visible');
+  }
+}
+// ───────────────────────────────────────────────────────────────
+
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
@@ -913,19 +1225,21 @@ function deactivateAllTools() {
 function appendUserMsg(text) {
   const msgs = document.getElementById('messages');
   const div = document.createElement('div');
+  const t = getTime();
   div.className = 'msg user';
   div.innerHTML = `
     <div class="msg-avatar">👤</div>
     <div class="msg-body">
       <div class="msg-meta">
         <span class="msg-name">You</span>
-        <span class="msg-time">${getTime()}</span>
+        <span class="msg-time">${t}</span>
       </div>
       <div class="msg-bubble">${escapeHtml(text)}</div>
     </div>
   `;
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
+  saveMessageToSession('user', text, t, {});
 }
 
 function showTyping() {
@@ -1010,6 +1324,7 @@ function detectAndShowActionNotice(responseText) {
       </div>
     `;
     msgs.appendChild(div);
+    saveMessageToSession('notice', '', getTime(), { noticeType: notice.type, icon: notice.icon, title: notice.title, body: notice.body });
   }
 }
 
@@ -1047,19 +1362,21 @@ function escapeHtml(text) {
 function appendAgentMsg(text) {
   const msgs = document.getElementById('messages');
   const div = document.createElement('div');
+  const t = getTime();
   div.className = 'msg agent';
   div.innerHTML = `
     <div class="msg-avatar">🤖</div>
     <div class="msg-body">
       <div class="msg-meta">
         <span class="msg-name">Workflow Agent</span>
-        <span class="msg-time">${getTime()}</span>
+        <span class="msg-time">${t}</span>
       </div>
       <div class="msg-bubble">${parseAndRenderMessage(text)}</div>
     </div>
   `;
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
+  saveMessageToSession('agent', text, t, {});
   detectAndShowActionNotice(text);
   setTimeout(deactivateAllTools, 2000);
 }
@@ -1096,6 +1413,8 @@ async function sendMessage() {
   isLoading = true;
   sendBtn.disabled = true;
 
+  // ensure active session
+  if (!activeSessionId) newChat();
   appendUserMsg(text);
   addActivity(`User: ${text.slice(0, 40)}${text.length > 40 ? '...' : ''}`, 'info');
   showTyping();
@@ -1105,7 +1424,7 @@ async function sendMessage() {
     const res = await fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chatInput: text, sessionId: 'ui-session-' + Date.now() })
+      body: JSON.stringify({ chatInput: text, sessionId: activeSessionId || ('ui-' + Date.now()) })
     });
 
     hideTyping();
@@ -1147,8 +1466,16 @@ function sendQuick(text) {
 
 // Focus input on load
 window.onload = () => {
-  document.getElementById('chatInput').focus();
+  sessions = loadSessions();
+  const ids = Object.keys(sessions).sort((a,b) => sessions[b].createdAt - sessions[a].createdAt);
+  if (ids.length) {
+    loadSession(ids[0]);
+  } else {
+    newChat();
+  }
+  renderHistory();
   addActivity('UI connected — n8n agent ready', 'success');
+  document.getElementById('chatInput').focus();
 };
 </script>
 </body>
